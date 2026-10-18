@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage
+coverage/
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# OpenCode: конфиг проекта (правила доступа + MCP-серверы), команды и скиллы —
+# коммитим; остальное (локальные артефакты, кэш) игнорируем.
+.opencode/*
+!.opencode/opencode.jsonc
+!.opencode/commands/
+!.opencode/skills/
+
+# Env
+.env
+.env.*.local
+
+.playwright-mcp/
