@@ -1,7 +1,6 @@
 # Спецификация: «Календарь звонков»
 
-Канон спецификации сервиса. Источник постановки — issue #3; все открытые решения
-закрыты на wayfinder-карте #4. Термины — `GLOSSARY.md`; архитектурные решения —
+Канон спецификации сервиса. Термины — `GLOSSARY.md`; архитектурные решения —
 `docs/adr/`.
 
 ## 1. Проблема и ценность
@@ -330,7 +329,7 @@ idle | submitting | error`; `409` → сообщение и возврат в к
 - Реальная отправка email и уведомлений.
 - Мультивладельцы и несколько календарей (Владелец один, предзаданный).
 - Отмена и перенос Встречи.
-- Список Типов событий в Админке (#34): Владелец видит свои Типы событий на
+- Список Типов событий в Админке: Владелец видит свои Типы событий на
   гостевом `/book`; отдельного экрана в Админке нет (см. §4 п. 3).
 
 ## 10. Открытые вопросы
@@ -339,29 +338,3 @@ idle | submitting | error`; `409` → сообщение и возврат в к
 - Клиентская vs серверная валидация в деталях.
 - Сортировка и пагинация списка предстоящих Встреч.
 - Часовые пояса.
-
-## Тикеты
-
-Разбивка спецификации на тикеты — под-issues #3; каждый тикет ссылается на раздел
-выше. Формат тикета: заголовок в Conventional Commits (`feat(web): …`,
-`feat(server): …`), тело — `## Что сделать / ## Контекст / ## Объём / ## Вне объёма /
-
-## Критерии готовности`.
-
-| Тикет                                                                                                                         | Разделы спеки | Реализация                                                                         |
-| ----------------------------------------------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------- |
-| [#23](https://github.com/Leomana8/ai-for-developers-project-386/issues/23) `feat(server): хранилище и Типы событий`           | §5, §6        | [#38](https://github.com/Leomana8/ai-for-developers-project-386/pull/38) `0a82ae1` |
-| [#24](https://github.com/Leomana8/ai-for-developers-project-386/issues/24) `feat(server): доступность Слотов в окне 14 дней`  | §5, §6        | [#38](https://github.com/Leomana8/ai-for-developers-project-386/pull/38) `bc89d60` |
-| [#25](https://github.com/Leomana8/ai-for-developers-project-386/issues/25) `feat(server): Записи и предстоящие Встречи`       | §5, §6        | [#38](https://github.com/Leomana8/ai-for-developers-project-386/pull/38) `a422f26` |
-| [#26](https://github.com/Leomana8/ai-for-developers-project-386/issues/26) `feat(web): слой данных и компоненты`              | §6, §7        | [#38](https://github.com/Leomana8/ai-for-developers-project-386/pull/38) `c0ad33a` |
-| [#27](https://github.com/Leomana8/ai-for-developers-project-386/issues/27) `feat(web): главная и список Типов событий`        | §7            | [#38](https://github.com/Leomana8/ai-for-developers-project-386/pull/38) `386618a` |
-| [#28](https://github.com/Leomana8/ai-for-developers-project-386/issues/28) `feat(web): гостевой поток записи`                 | §7, §8        | [#38](https://github.com/Leomana8/ai-for-developers-project-386/pull/38) `ae67263` |
-| [#29](https://github.com/Leomana8/ai-for-developers-project-386/issues/29) `feat(web): Админка`                               | §7            | [#38](https://github.com/Leomana8/ai-for-developers-project-386/pull/38) `fd2517b` |
-| [#33](https://github.com/Leomana8/ai-for-developers-project-386/issues/33) `feat(web): вкладки «Запись»/«Админка» на главной` | §7            | [#38](https://github.com/Leomana8/ai-for-developers-project-386/pull/38) `d9f6d75` |
-| [#34](https://github.com/Leomana8/ai-for-developers-project-386/issues/34) `feat(web): сквозной хедер и тексты экранов`       | §7, §10       | [#38](https://github.com/Leomana8/ai-for-developers-project-386/pull/38) `d24f3a1` |
-
-Спецификация #3 сложилась в PR [#22](https://github.com/Leomana8/ai-for-developers-project-386/pull/22),
-[#30](https://github.com/Leomana8/ai-for-developers-project-386/pull/30) и
-[#31](https://github.com/Leomana8/ai-for-developers-project-386/pull/31). Порядок работ задан
-нативными зависимостями между тикетами в GitHub: `#23` → `#24` → `#25` → `#26` → `#27` →
-`#28`/`#29`, `#33` → `#34`. Сообщения коммитов ссылаются на тикеты по правилу из `AGENTS.md`.

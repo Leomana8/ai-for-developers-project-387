@@ -1,8 +1,6 @@
 # Календарь звонков
 
-[![hexlet-check](https://github.com/Leomana8/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/Leomana8/ai-for-developers-project-386/actions)
-
-🌐 Опубликованная версия: **https://call-calendar-zt5b.onrender.com**
+[![hexlet-check](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/Leomana8/ai-for-developers-project-387/actions)
 
 Разработайте совместно с ИИ сервис для бронирования календаря
 
@@ -22,8 +20,8 @@
 ## Установка
 
 ```bash
-git clone https://github.com/Leomana8/ai-for-developers-project-386.git
-cd ai-for-developers-project-386
+git clone https://github.com/Leomana8/ai-for-developers-project-387.git
+cd ai-for-developers-project-387
 npm install
 ```
 
@@ -58,9 +56,10 @@ npm run spec
 
 ## Деплой
 
-Приложение развёрнуто на Render: **https://call-calendar-zt5b.onrender.com** —
-сервер отдаёт и API, и собранный фронтенд одним контейнером. План бесплатный,
-поэтому сервис засыпает без запросов, и первый запуск может занять до минуты.
+Приложение разворачивается на Render: сервер отдаёт и API, и собранный фронтенд
+одним контейнером. План бесплатный, поэтому сервис засыпает без запросов, и первый
+запуск может занять до минуты. Публичный адрес сервиса появится здесь вместе с
+первым деплоем.
 
 Образ собирается из `Dockerfile` в корне репозитория: стадия сборки ставит
 зависимости и собирает бэкенд и фронтенд, рантайм-стадия содержит только

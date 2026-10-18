@@ -14,7 +14,7 @@ Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all o
 
 Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
 
-Repo: `Leomana8/ai-for-developers-project-386`.
+Repo: `Leomana8/ai-for-developers-project-387`.
 
 ## Pull requests as a triage surface
 
