@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { EventTypeFormPage } from '@/pages/admin/EventTypeFormPage'
 import { MeetingsPage } from '@/pages/admin/MeetingsPage'
+import { DURATION_OPTIONS } from '@/lib/validation'
 import { mockApi } from '@/test/mockApi'
 
 const upcomingMeeting = {
@@ -151,15 +152,10 @@ describe('EventTypeFormPage', () => {
       ctrlKey: false,
     })
 
-    // Набор из §5: кратно 15, от 15 до 90 — и ничего сверх него.
-    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
-      '15',
-      '30',
-      '45',
-      '60',
-      '75',
-      '90',
-    ])
+    // Список — ровно DURATION_OPTIONS из формы, без дубля набора в тесте.
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(
+      DURATION_OPTIONS.map(String),
+    )
   })
 
   it('клиентская валидация: длительность не выбрана — не отправляет', async () => {

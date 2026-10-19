@@ -13,11 +13,7 @@ import {
 } from '@/components/ui/select'
 import { SiteHeader } from '@/components/SiteHeader'
 import { ADMIN_UNAVAILABLE_MESSAGE, ApiError, apiErrorMessage, createEventType } from '@/lib/api'
-
-// Длительность Типа события: шаг 15 минут от 15 до 90 (docs/spec.md §5).
-// Набор конечен и мал, поэтому показываем его списком, а не числовым полем:
-// варианты видны сразу, ошибочное значение руками не вбить.
-const DURATION_OPTIONS = [15, 30, 45, 60, 75, 90]
+import { DURATION_OPTIONS } from '@/lib/validation'
 
 // /admin/event-types/new — создание Типа события «от имени Владельца».
 // Клиент валидирует подсказкой; сервер — 422 со списком полей (docs/spec.md §5).
