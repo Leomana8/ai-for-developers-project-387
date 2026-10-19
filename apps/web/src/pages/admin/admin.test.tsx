@@ -109,13 +109,17 @@ describe('EventTypeFormPage', () => {
   }
 
   // Radix Select открывается по pointerdown мыши, вариант выбирается кликом
-  // (шп. Select в ui/select.tsx).
-  function chooseDuration(minutes: string) {
+  // (см. Select в src/components/ui/select.tsx).
+  function openDurationList() {
     fireEvent.pointerDown(screen.getByLabelText(/Длительность/), {
       pointerType: 'mouse',
       button: 0,
       ctrlKey: false,
     })
+  }
+
+  function chooseDuration(minutes: string) {
+    openDurationList()
     fireEvent.click(screen.getByRole('option', { name: minutes }))
   }
 
@@ -146,11 +150,7 @@ describe('EventTypeFormPage', () => {
   it('длительность — список вариантов, а не свободный ввод', () => {
     renderForm()
 
-    fireEvent.pointerDown(screen.getByLabelText(/Длительность/), {
-      pointerType: 'mouse',
-      button: 0,
-      ctrlKey: false,
-    })
+    openDurationList()
 
     // Список — ровно DURATION_OPTIONS из формы, без дубля набора в тесте.
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(

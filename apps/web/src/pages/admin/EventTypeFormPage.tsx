@@ -27,19 +27,15 @@ export function EventTypeFormPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  // Клиентская валидация зеркалит правила сервера: name ≤100,
-  // duration — целое, кратно 15, от 15 до 90.
+  // Клиентская валидация зеркалит правила сервера: name ≤100, duration — не пусто.
+  // Диапазон длительности отдельно не проверяем: значение приходит только из
+  // DURATION_OPTIONS, вбить нечего, а «кратна 15, от 15 до 90» в этом случае
+  // приходит сервером в 422 — UI показывает тексты полей как есть (docs/spec.md §5).
   function validate(): Record<string, string> {
     const errors: Record<string, string> = {}
     if (name.trim() === '') errors.name = 'Укажите название'
     if (name.trim().length > 100) errors.name = 'Название не длиннее 100 символов'
-
-    const durationValue = Number(duration)
-    if (duration.trim() === '') {
-      errors.duration = 'Укажите длительность в минутах'
-    } else if (!DURATION_OPTIONS.includes(durationValue)) {
-      errors.duration = 'Длительность — кратна 15, от 15 до 90 минут'
-    }
+    if (duration === '') errors.duration = 'Укажите длительность в минутах'
 
     return errors
   }
