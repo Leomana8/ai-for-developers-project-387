@@ -44,7 +44,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
         with:
-          model: opencode/space-bunny-free
+          model: opencode/mimo-v2.6-flash-free
 
       # Страховка для переписанной истории: `--force-with-lease` отправляет
       # локальный HEAD в ветку PR, только если remote всё ещё там, где его видел

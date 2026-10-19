@@ -48,7 +48,7 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
         with:
-          model: opencode/space-bunny-free
+          model: opencode/mimo-v2.6-flash-free
           mentions: /ask,/interactive
           prompt: |
             Ответь на вопрос из комментария в PR.
