@@ -1,0 +1,76 @@
+name: opencode-triage
+
+# Автотриаж новых issue: агент читает задачу и вешает один канонический лейбл
+# (`docs/agents/triage-labels.md`). Партнёр `opencode-review.yml`: там инициатива
+# у PR, здесь — у нового issue. `issues` — из поддерживаемых экшеном событий
+# единственное, где обязателен вход `prompt`: комментария, из которого агент берёт
+# задание, ещё нет, поэтому задание целиком лежит в промпте
+# (пример — https://opencode.ai/docs/github/#issues-triage-example).
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    # Ботов не триажим: их issue заводит сам агент, а разбор своих же issue жжёт
+    # токены и рискует зациклиться. Issue с готовым триажным лейблом пропускаем:
+    # его уже разобрал человек или скилл `ui-testing`, который ставит лейбл при
+    # заведении бага (`ready-for-agent`, а спорные вопросы — `needs-triage`).
+    if: >-
+      github.event.issue.user.type != 'Bot' &&
+      !contains(github.event.issue.labels.*.name, 'needs-triage') &&
+      !contains(github.event.issue.labels.*.name, 'needs-info') &&
+      !contains(github.event.issue.labels.*.name, 'ready-for-agent') &&
+      !contains(github.event.issue.labels.*.name, 'ready-for-human') &&
+      !contains(github.event.issue.labels.*.name, 'wontfix')
+    runs-on: ubuntu-latest
+    # Страховка от зависания — как в остальных воркфлоу: экшен поднимает
+    # `opencode serve` без клиента, который снял бы запрос подтверждения (ask).
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      # Права ниже — для GITHUB_TOKEN. Сам агент работает с токеном приложения
+      # OpenCode, полученным через OIDC-обмен.
+      contents: read
+      # write, а не read: лейбл вешает `gh` из-под агента — это запись в issue.
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Triage issue
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
+          # `gh` в bash-инструментах агента берёт токен отсюда: экшен отдаёт агенту
+          # app-токен только для git и собственных комментариев, в env его не
+          # экспортирует (проверено по github.handler.ts, v1.19.3).
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: opencode/space-bunny-free
+          prompt: |
+            Новый issue #${{ github.event.issue.number }} — проведи триаж.
+
+            Как решать:
+            - Прочитай `AGENTS.md` и `docs/agents/triage-labels.md`, а если в задаче
+              есть доменные термины — `GLOSSARY.md`.
+            - Выбери ровно один лейбл из канонического набора:
+              - `ready-for-agent` — задача полностью специфицирована: есть
+                воспроизведение, причина или место в коде и критерии готовности;
+              - `ready-for-human` — нужна ручная работа или решение человека
+                (деплой, инфраструктура, продуктовый выбор);
+              - `needs-info` — данных не хватает: нет воспроизведения или задача
+                допускает несколько толкований;
+              - `wontfix` — вне области проекта, дубликат или не задача;
+              - `needs-triage` — не уверен: оставь решение человеку.
+            - Повесь лейбл: `gh issue edit <номер> --add-label <лейбл>`.
+
+            Чего нельзя:
+            - Менять файлы, коммитить, создавать ветки и PR.
+            - Закрывать issue и снимать чужие лейблы: закрытие — за человеком.
+
+            Финальный ответ прогона публикуется комментарием в issue, поэтому напиши
+            его как короткое сообщение автору (2–4 строки) на языке issue: какой
+            лейбл и почему, а для `needs-info` — конкретные вопросы.
