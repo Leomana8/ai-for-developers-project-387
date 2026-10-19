@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { EventTypeFormPage } from '@/pages/admin/EventTypeFormPage'
 import { MeetingsPage } from '@/pages/admin/MeetingsPage'
+import { DURATION_OPTIONS } from '@/lib/validation'
 import { mockApi } from '@/test/mockApi'
 
 const upcomingMeeting = {
@@ -107,6 +108,17 @@ describe('EventTypeFormPage', () => {
     )
   }
 
+  // Radix Select открывается по pointerdown мыши, вариант выбирается кликом
+  // (шп. Select в ui/select.tsx).
+  function chooseDuration(minutes: string) {
+    fireEvent.pointerDown(screen.getByLabelText(/Длительность/), {
+      pointerType: 'mouse',
+      button: 0,
+      ctrlKey: false,
+    })
+    fireEvent.click(screen.getByRole('option', { name: minutes }))
+  }
+
   it('создаёт Тип события и уходит к списку Встреч', async () => {
     let requestBody: unknown
     mockApi({
@@ -121,7 +133,7 @@ describe('EventTypeFormPage', () => {
     renderForm()
 
     fireEvent.input(screen.getByLabelText('Название'), { target: { value: 'Менторинг' } })
-    fireEvent.input(screen.getByLabelText(/Длительность/), { target: { value: '60' } })
+    chooseDuration('60')
     fireEvent.click(screen.getByRole('button', { name: 'Создать тип события' }))
 
     // Навигация на список Встреч после создания.
@@ -131,18 +143,30 @@ describe('EventTypeFormPage', () => {
     expect(screen.getByTestId('location').textContent).toBe('/admin/meetings')
   })
 
-  it('клиентская валидация: длительность не кратна 15 — не отправляет', async () => {
+  it('длительность — список вариантов, а не свободный ввод', () => {
+    renderForm()
+
+    fireEvent.pointerDown(screen.getByLabelText(/Длительность/), {
+      pointerType: 'mouse',
+      button: 0,
+      ctrlKey: false,
+    })
+
+    // Список — ровно DURATION_OPTIONS из формы, без дубля набора в тесте.
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(
+      DURATION_OPTIONS.map(String),
+    )
+  })
+
+  it('клиентская валидация: длительность не выбрана — не отправляет', async () => {
     const createEventType = vi.fn()
     mockApi({ 'POST /api/event-types': createEventType })
     renderForm()
 
     fireEvent.input(screen.getByLabelText('Название'), { target: { value: 'Менторинг' } })
-    fireEvent.input(screen.getByLabelText(/Длительность/), { target: { value: '50' } })
     fireEvent.click(screen.getByRole('button', { name: 'Создать тип события' }))
 
-    expect(
-      await screen.findByText('Длительность — кратна 15, от 15 до 90 минут'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('Укажите длительность в минутах')).toBeInTheDocument()
     expect(createEventType).not.toHaveBeenCalled()
   })
 
@@ -151,7 +175,7 @@ describe('EventTypeFormPage', () => {
     mockApi({ 'POST /api/event-types': createEventType })
     renderForm()
 
-    fireEvent.input(screen.getByLabelText(/Длительность/), { target: { value: '30' } })
+    chooseDuration('30')
     fireEvent.click(screen.getByRole('button', { name: 'Создать тип события' }))
 
     expect(await screen.findByText('Укажите название')).toBeInTheDocument()
@@ -167,7 +191,7 @@ describe('EventTypeFormPage', () => {
     renderForm()
 
     fireEvent.input(screen.getByLabelText('Название'), { target: { value: 'Менторинг' } })
-    fireEvent.input(screen.getByLabelText(/Длительность/), { target: { value: '60' } })
+    chooseDuration('60')
     fireEvent.click(screen.getByRole('button', { name: 'Создать тип события' }))
 
     expect(await screen.findByText('Сервер недоступен, попробуйте позже')).toBeInTheDocument()
@@ -194,7 +218,7 @@ describe('EventTypeFormPage', () => {
     renderForm()
 
     fireEvent.input(screen.getByLabelText('Название'), { target: { value: 'Менторинг' } })
-    fireEvent.input(screen.getByLabelText(/Длительность/), { target: { value: '60' } })
+    chooseDuration('60')
     fireEvent.click(screen.getByRole('button', { name: 'Создать тип события' }))
 
     expect(await screen.findByText('Название не длиннее 100 символов')).toBeInTheDocument()

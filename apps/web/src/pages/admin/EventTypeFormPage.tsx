@@ -4,8 +4,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { SiteHeader } from '@/components/SiteHeader'
 import { ADMIN_UNAVAILABLE_MESSAGE, ApiError, apiErrorMessage, createEventType } from '@/lib/api'
+import { DURATION_OPTIONS } from '@/lib/validation'
 
 // /admin/event-types/new — создание Типа события «от имени Владельца».
 // Клиент валидирует подсказкой; сервер — 422 со списком полей (docs/spec.md §5).
@@ -27,9 +35,9 @@ export function EventTypeFormPage() {
     if (name.trim().length > 100) errors.name = 'Название не длиннее 100 символов'
 
     const durationValue = Number(duration)
-    if (duration.trim() === '' || !Number.isInteger(durationValue)) {
+    if (duration.trim() === '') {
       errors.duration = 'Укажите длительность в минутах'
-    } else if (durationValue % 15 !== 0 || durationValue < 15 || durationValue > 90) {
+    } else if (!DURATION_OPTIONS.includes(durationValue)) {
       errors.duration = 'Длительность — кратна 15, от 15 до 90 минут'
     }
 
@@ -110,18 +118,22 @@ export function EventTypeFormPage() {
 
         <Field data-invalid={fieldErrors.duration !== undefined}>
           <FieldLabel htmlFor="event-type-duration">Длительность (минуты)</FieldLabel>
-          <Input
-            id="event-type-duration"
-            name="duration"
-            type="number"
-            inputMode="numeric"
-            step={15}
-            min={15}
-            max={90}
-            value={duration}
-            onChange={(event) => setDuration(event.target.value)}
-            required
-          />
+          <Select value={duration} onValueChange={setDuration}>
+            <SelectTrigger
+              id="event-type-duration"
+              aria-invalid={fieldErrors.duration !== undefined}
+              aria-required="true"
+            >
+              <SelectValue placeholder="Выберите длительность" />
+            </SelectTrigger>
+            <SelectContent position="popper">
+              {DURATION_OPTIONS.map((minutes) => (
+                <SelectItem key={minutes} value={String(minutes)}>
+                  {minutes}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {fieldErrors.duration !== undefined && (
             <FieldError errors={[{ message: fieldErrors.duration }]} />
           )}

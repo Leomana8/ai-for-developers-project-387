@@ -8,6 +8,18 @@ import { installApiMock, resetApiMock } from './mockApi'
 // (@/lib/api) захватывает глобальные fetch/Request при создании.
 installApiMock()
 
+// jsdom не умеет то, на чём держится Radix Select (шп. Select в ui/select.tsx):
+// измерение триггера, прокрутка списка и захват указателя. Без заглушек
+// раскрытый список не появляется — и достать его варианты в тестах нельзя.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Element.prototype.scrollIntoView ??= () => {}
+Element.prototype.hasPointerCapture ??= () => false
+Element.prototype.releasePointerCapture ??= () => {}
+
 afterEach(() => {
   cleanup()
   resetApiMock()
