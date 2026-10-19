@@ -24,17 +24,17 @@ jobs:
     timeout-minutes: 15
     permissions:
       id-token: write
-      # Права ниже — для GITHUB_TOKEN. Сам агент работает с токеном приложения OpenCode,
-      # полученным через OIDC-обмен, и его права задаются настройкой приложения.
+      # Права ниже — для GITHUB_TOKEN: `use_github_token: true` ниже передаёт
+      # агенту именно токен раннера, OIDC-обмен токеном приложения не нужен.
+      # Ревью читает диф и оставляет замечания, код не меняет — поэтому прав
+      # на чтение хватает, на запись не расширяем: мержит и одобряет человек.
       contents: read
-      # write, а не read: ревью-комментарии — это запись в PR.
-      pull-requests: write
-      # Сводный комментарий к PR уходит через API issues — тоже запись.
-      issues: write
+      pull-requests: read
+      issues: read
     steps:
       # Репо нужен агенту только для чтения кода. `persist-credentials: false` убирает
-      # extraheader с токеном из конфига git, как и в `opencode.yml`: агент всё равно
-      # получает доступ через токен приложения, а лишний токен в `.git/config` не нужен.
+      # extraheader с токеном из конфига git, как и в `opencode.yml`: агент получает
+      # доступ через env `GITHUB_TOKEN`, а лишний токен в `.git/config` не нужен.
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
@@ -44,8 +44,13 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
+          # Токен раннера: экшену он нужен, только когда включён `use_github_token`.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/space-bunny-free
+          model: opencode/mimo-v2.6-flash-free
+          # true — замечания оставляет GITHUB_TOKEN раннера, а не токен приложения
+          # OpenCode из OIDC-обмена: этот воркфлоу права на запись не получает.
+          use_github_token: true
           # Свой промпт вместо встроенного дефолта: дефолт смотрит на код вообще, а
           # правила проекта живут в AGENTS.md и в договорах OpenAPI — их надо назвать.
           prompt: |
