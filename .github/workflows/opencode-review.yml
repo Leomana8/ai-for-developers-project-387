@@ -24,13 +24,18 @@ jobs:
     timeout-minutes: 15
     permissions:
       id-token: write
-      # Права ниже — для GITHUB_TOKEN: `use_github_token: true` ниже передаёт
-      # агенту именно токен раннера, OIDC-обмен токеном приложения не нужен.
-      # Ревью читает диф и оставляет замечания, код не меняет — поэтому прав
-      # на чтение хватает, на запись не расширяем: мержит и одобряет человек.
+      # GITHUB_TOKEN раннера нужен экшену для записи в тред PR: `use_github_token: true`
+      # ниже передаёт агенту именно его, OIDC-обмен токеном приложения не нужен.
+      # read-прав из задачи не хватило: экшен ставит реакцию-индикатор на PR перед
+      # ревью и публикует сводный комментарий после — это запись через issues API
+      # (run 39254765935 упал с 403 «Resource not accessible by integration»).
+      # Сам репозиторий агент только читает — на правку кода прав не выдаём:
+      # мержит и одобряет человек.
       contents: read
-      pull-requests: read
-      issues: read
+      # write, а не read: реакция на PR и комментарий в него по REST-эндпоинтам
+      # issues требуют и `issues: write`, и `pull-requests: write`.
+      pull-requests: write
+      issues: write
     steps:
       # Репо нужен агенту только для чтения кода. `persist-credentials: false` убирает
       # extraheader с токеном из конфига git, как и в `opencode.yml`: агент получает
