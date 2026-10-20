@@ -1,28 +1,24 @@
 name: opencode-review
 
-# Авторевью PR агентом. Запускается только по `workflow_dispatch` — из
-# `opencode-trigger.yml`, который перехватывает `pull_request` (в том числе от
-# ботов). Прямой триггер `pull_request` снять пришлось: для событий от бота
-# экшен падает на `assertPermissions` — у `opencode-agent[bot]` и
-# `github-actions[bot]` уровень прав `none`, а проверку нельзя отключить входом.
-#
-# Две вещи на `workflow_dispatch` экшен не делает сам (`github.handler.ts`,
-# ветка `isRepoEvent`): не передаёт диф PR и не публикует комментарий —
-# `issueId` там undefined, `createComment` не вызывается, текст ревью уходит
-# только в лог прогона. Поэтому промпт обязывает агента получить PR через `gh`
-# и опубликовать ревью комментарием самому.
+# Автоматическое ревью PR: агент читает диф и оставляет комментарии, кода не меняет.
+# Партнёр `opencode.yml`: там работа по запросу человека (`/oc`, `/opencode`) и агент
+# правит файлы. Здесь инициатива у бота, человек не пишет команду.
 on:
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: 'Номер Pull Request для ревью'
-        required: true
-      pr_head_sha:
-        description: 'SHA коммита, который проверяем'
-        required: true
+  pull_request:
+    types: [opened, reopened, ready_for_review]
 
 jobs:
   review:
+    # Черновики не ревьюим. PR от ботов (автор — `github-actions[bot]` или
+    # приложение OpenCode) тоже ревьюим: без этого агентские PR не получают
+    # ревью вовсе, а зацикливание исключено таймаутом и тем, что этот job сам
+    # не коммитит — только оставляет комментарии.
+    # Форки пропускаем: GitHub не передаёт секреты в прогонах от форков, job упал бы
+    # на пустом API-ключе. `pull_request_target` секреты даст, но вместе с ними под
+    # управление коду чужого PR попадёт write-токен — поэтому вариант не используем.
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     # Страховка от зависания — как в `opencode.yml`: экшен поднимает `opencode serve`
     # без клиента, который снял бы запрос на подтверждение (ask).
@@ -31,53 +27,40 @@ jobs:
       id-token: write
       # GITHUB_TOKEN раннера нужен экшену для записи в тред PR: `use_github_token: true`
       # ниже передаёт агенту именно его, OIDC-обмен токеном приложения не нужен.
-      # read-прав из задачи не хватило: агент публикует ревью комментарием и реакции
-      # ставит через issues API.
+      # read-прав из задачи не хватило: экшен ставит реакцию-индикатор на PR перед
+      # ревью и публикует сводный комментарий после — это запись через issues API
+      # (run 39254765935 упал с 403 «Resource not accessible by integration»).
       # Сам репозиторий агент только читает — на правку кода прав не выдаём:
-      # `contents: read` — единственная преграда между агентом и коммитом, потому
-      # что на `workflow_dispatch` проверка прав экшена пропущена.
+      # мержит и одобряет человек.
       contents: read
-      # write, а не read: комментарий в PR по REST-эндпоинтам issues требует
-      # и `issues: write`, и `pull-requests: write`.
+      # write, а не read: реакция на PR и комментарий в него по REST-эндпоинтам
+      # issues требуют и `issues: write`, и `pull-requests: write`.
       pull-requests: write
       issues: write
     steps:
-      # Чекаутим не ветку, а конкретный SHA из PR: `workflow_dispatch` не несёт
-      # контекста PR, поэтому head SHA приходится передавать через вход.
-      # `persist-credentials: false` убирает extraheader с токеном из конфига git —
-      # агент получает доступ через env `GITHUB_TOKEN`.
+      # Репо нужен агенту только для чтения кода. `persist-credentials: false` убирает
+      # extraheader с токеном из конфига git, как и в `opencode.yml`: агент получает
+      # доступ через env `GITHUB_TOKEN`, а лишний токен в `.git/config` не нужен.
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.pr_head_sha }}
           persist-credentials: false
 
       - name: Review pull request
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
-          # Токен раннера: экшену он нужен, только когда включён `use_github_token`,
-          # агенту — для `gh pr diff` и `gh pr comment`.
+          # Токен раннера: экшену он нужен, только когда включён `use_github_token`.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/mimo-v2.6-flash-free
-          # true — ревью публикует GITHUB_TOKEN раннера, а не токен приложения
-          # OpenCode из OIDC-обмена: токен приложения дал бы агенту права на запись
-          # в код, а этот прогон — только ревью.
+          # true — замечания оставляет GITHUB_TOKEN раннера, а не токен приложения
+          # OpenCode из OIDC-обмена: этот воркфлоу права на запись не получает.
           use_github_token: true
-          # Свой промпт вместо встроенного дефолта: правила проекта живут в
-          # AGENTS.md и в договорах OpenAPI, а на `workflow_dispatch` экшен не
-          # передаёт ни диф PR, ни его номер — их приходится называть явно.
+          # Свой промпт вместо встроенного дефолта: дефолт смотрит на код вообще, а
+          # правила проекта живут в AGENTS.md и в договорах OpenAPI — их надо назвать.
           prompt: |
-            Проведи ревью Pull Request №${{ inputs.pr_number }} по правилам репозитория.
-
-            Прогон запущен по `workflow_dispatch`: экшен не передал тебе ни диф, ни
-            номер PR, и комментарий публиковать не будет — обе вещи делаешь ты через `gh`.
-
-            Как получить контекст:
-            - `gh pr view <N> --json title,body,author,baseRefName,headRefName` — что за PR;
-            - `gh pr diff <N>` — диф;
-            - `gh api repos/{owner}/{repo}/pulls/<N>/comments` — замечания на строках, если нужны.
+            Проведи ревью этого pull request по правилам репозитория.
 
             Что проверять:
             - Только TypeScript, без нетипизированного JS; форматирование — Prettier
@@ -94,11 +77,14 @@ jobs:
               `.github/workflows/hexlet-check.yml` не трогаем.
 
             Как отвечать:
-            - Опубликуй ревью комментарием в PR: `gh pr comment <N> --body-file -`,
-              текст через heredoc. Файлов в репозитории не создавай и ничего не
-              коммить: любое изменение дерева экшен закоммитит, запушит ветку
-              `opencode/dispatch-…` и откроет лишний PR.
             - Конкретные замечания — по месту: строка + файл, что не так и почему.
             - Сводка в конце: что блокирует мердж, что необязательно.
+            - Никаких правок кода и никаких коммитов: этот прогон только ревью.
             - Без похвал и придирок к тому, что уже решает Prettier. Если PR в порядке —
               одна строка.
+
+      # Запрет на правку кода держится на трёх опорах, и все три важны: `contents: read`
+      # в правах выше, запрет `git push` в `.opencode/opencode.jsonc` (упавший прогон вместо
+      # коммита) и запрет в промпте. Агента `plan` вместо дефолтного `build` тут не
+      # выбрано сознательно: конфиг репозитория мержит `edit: allow` поверх `plan`,
+      # и read-only от смены агента не получается — только лишнее отличие от `opencode.yml`.
