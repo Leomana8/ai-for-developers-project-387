@@ -35,13 +35,14 @@ jobs:
       - name: Trigger review workflow
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Репозиторий — явно: в job нет checkout, а `gh workflow run` без
+          # `--repo` ищет его по локальному git (`fatal: not a git repository`).
+          REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          # Воркфлоу-исполнитель берётся с дефолтной ветки: пока правки не смержены,
-          # `gh workflow run` увидит старую версию без `workflow_dispatch` и упадёт.
+          # Запускаем основной воркфлоу ревью, передавая номер PR
           gh workflow run opencode-review.yml \
-            --ref "$DEFAULT_BRANCH" \
-            -f pr_number="$PR_NUMBER" \
-            -f pr_head_sha="$PR_HEAD_SHA"
+            -f pr_number="${{ github.event.pull_request.number }}" \
+            -f pr_head_sha="${{ github.event.pull_request.head.sha }}"
