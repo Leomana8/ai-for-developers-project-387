@@ -80,9 +80,14 @@ export function SlotPickerPage() {
         </Badge>
         <h1 className="font-heading text-3xl font-semibold">Выберите Слот</h1>
         {eventType !== null && (
-          <p className="text-muted-foreground">
-            {eventType.name}, {eventType.duration} мин
-          </p>
+          <>
+            <p className="text-muted-foreground">
+              {eventType.name}, {eventType.duration} мин
+            </p>
+            {eventType.description !== null && (
+              <p className="text-muted-foreground">{eventType.description}</p>
+            )}
+          </>
         )}
       </header>
 

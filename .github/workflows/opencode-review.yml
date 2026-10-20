@@ -9,14 +9,15 @@ on:
 
 jobs:
   review:
-    # Черновики не ревьюим. PR от ботов — тем более: их же коммитит `opencode.yml`,
-    # и ревью собственных коммитов только жжёт токены (и рискует зациклиться).
+    # Черновики не ревьюим. PR от ботов (автор — `github-actions[bot]` или
+    # приложение OpenCode) тоже ревьюим: без этого агентские PR не получают
+    # ревью вовсе, а зацикливание исключено таймаутом и тем, что этот job сам
+    # не коммитит — только оставляет комментарии.
     # Форки пропускаем: GitHub не передаёт секреты в прогонах от форков, job упал бы
     # на пустом API-ключе. `pull_request_target` секреты даст, но вместе с ними под
     # управление коду чужого PR попадёт write-токен — поэтому вариант не используем.
     if: >-
       github.event.pull_request.draft == false &&
-      github.event.pull_request.user.type != 'Bot' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     # Страховка от зависания — как в `opencode.yml`: экшен поднимает `opencode serve`

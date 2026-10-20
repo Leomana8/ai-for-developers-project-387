@@ -92,12 +92,14 @@ describe('гостевой поток записи', () => {
     // Шаг 1: Тип события → календарь и Слоты.
     fireEvent.click(await screen.findByRole('link', { name: /Консультация/ }))
     expect(await screen.findByRole('heading', { name: 'Выберите Слот' })).toBeInTheDocument()
+    expect(await screen.findByText('Разбор вопроса')).toBeInTheDocument()
 
     // Шаг 2: занятый Слот отключен, свободный выбирается, «Продолжить» — на подтверждение.
     expect(await screen.findByRole('button', { name: '09:30' })).toBeDisabled()
     fireEvent.click(screen.getByRole('button', { name: '09:00' }))
     fireEvent.click(screen.getByRole('button', { name: 'Продолжить' }))
     expect(await screen.findByRole('heading', { name: 'Подтвердите Запись' })).toBeInTheDocument()
+    expect(screen.getByText('Разбор вопроса')).toBeInTheDocument()
 
     // Шаг 3: имя и email → Запись.
     fireEvent.input(screen.getByLabelText('Имя'), { target: { value: 'Иван Петров' } })

@@ -21,7 +21,9 @@ function dayIso(offsetDays: number): string {
 beforeEach(() => {
   mockApi({
     'GET /api/event-types': () =>
-      Response.json([{ id: 'e1', name: 'Консультация', description: null, duration: 30 }]),
+      Response.json([
+        { id: 'e1', name: 'Консультация', description: 'Разбор вопроса', duration: 30 },
+      ]),
   })
 })
 
@@ -49,6 +51,24 @@ describe('SlotPickerPage', () => {
     renderPicker()
 
     expect(await screen.findByText('Консультация, 30 мин')).toBeInTheDocument()
+    expect(screen.getByText('Разбор вопроса')).toBeInTheDocument()
+  })
+
+  it('без описания типа события сводка остаётся без абзаца описания', async () => {
+    mockApi({
+      'GET /api/event-types': () =>
+        Response.json([{ id: 'e1', name: 'Консультация', description: null, duration: 30 }]),
+    })
+    mockSlots([])
+    const { container } = renderPicker()
+
+    expect(await screen.findByText('Консультация, 30 мин')).toBeInTheDocument()
+    expect(screen.queryByText('Разбор вопроса')).not.toBeInTheDocument()
+    // Guard проверяем по числу абзацев в <header>: без description остаётся
+    // только сводка, а при снятом guard рендерился бы второй (пустой) <p>.
+    expect([...container.querySelectorAll('header p')].map((p) => p.textContent)).toEqual([
+      'Консультация, 30 мин',
+    ])
   })
 
   it('по умолчанию показывает первый день окна; занятые Слоты отключены', async () => {
