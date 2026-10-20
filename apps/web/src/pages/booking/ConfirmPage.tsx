@@ -110,9 +110,14 @@ export function ConfirmPage() {
         </Badge>
         <h1 className="font-heading text-3xl font-semibold">Подтвердите Запись</h1>
         {eventType !== null && (
-          <p className="text-muted-foreground">
-            {eventType.name}, {eventType.duration} мин — {formatDayTime(start)}
-          </p>
+          <>
+            <p className="text-muted-foreground">
+              {eventType.name}, {eventType.duration} мин — {formatDayTime(start)}
+            </p>
+            {eventType.description !== null && (
+              <p className="text-muted-foreground">{eventType.description}</p>
+            )}
+          </>
         )}
       </header>
 
