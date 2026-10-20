@@ -17,7 +17,7 @@ name: opencode-trigger
 # ревью бот-PR и есть цель этого воркфлоу.
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, reopened, ready_for_review]
 
 permissions:
   # `gh workflow run` — запись в Actions.
