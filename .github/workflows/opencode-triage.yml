@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     # Страховка от зависания — как в остальных воркфлоу: экшен поднимает
     # `opencode serve` без клиента, который снял бы запрос подтверждения (ask).
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       id-token: write
       # Права ниже — для GITHUB_TOKEN. Сам агент работает с токеном приложения
