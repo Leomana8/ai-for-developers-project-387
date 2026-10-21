@@ -16,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     # Страховка от зависания: экшен поднимает `opencode serve` без клиента, поэтому запрос
     # подтверждения (ask) никто не снимет — без лимита GitHub убил бы job только через
-    # 360 минут. 15 минут хватает на установку и ответ модели.
-    timeout-minutes: 15
+    # 360 минут.
+    timeout-minutes: 35
     permissions:
       id-token: write
       # write, а не read: шагу восстановления нужен push. Экшен и до этого
