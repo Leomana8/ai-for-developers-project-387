@@ -1,29 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  // Правила записаны в V1-совместимом синтаксисе (объект `permission`), а не в V2-массиве
-  // `permissions`. GitHub-экшен ставит OpenCode V1 (`curl https://opencode.ai/install`) и
-  // падает на V2-ключе: «V2 permissions are not supported by OpenCode V1. Use V1 "permission"
-  // rules or run opencode2». Совместимость односторонняя: V2 нормализует V1-форму на лету
-  // (permission → permissions, bash → shell, task → subagent), V1 — нет. Поэтому файл
-  // остаётся в V1-форме, пока CI-бот работает на V1, и обслуживает обе версии сразу.
-  //
-  // Намеренно НЕТ верхнеуровневого catch-all "*". Неописанные действия и так разрешены
-  // дефолтами: в V2 базовая политика агента — "* → allow", в V1 почти всё allow. Явный
-  // "*": "ask" означал бы «спрашивать вообще всё, что не перечислено» и результат зависел бы
-  // от порядка слияния с глобальным конфигом разработчика. Для shell свой catch-all задан
-  // явно, в объекте `bash`.
-  //
-  // Политика внутри инструментов: «по умолчанию разрешено, опасное — deny». Промежуточный
-  // ask в CI не работает: GitHub-экшен поднимает `opencode serve` без клиента, который мог бы
-  // подтвердить запрос, и прогон ждёт вечно. Так и вышло в прогоне 39061963322: бот дошёл до
-  // `asking { permission: "bash", patterns: ["curl -s https://opencode.ai/config.json", ...] }`
-  // в 19:20:01 и стоял до ручной отмены на 11m30s. Поэтому ask здесь не используется, а роль
-  // ограничителя играет deny — его нельзя обойти кнопкой «Allow always».
+  // Совместимо с OpenCode V1/V2
   "permission": {
-    // Инструменты без shell — без запросов: вопросы, скилы, субагенты,
-    // Code Mode (execute) и MCP-браузеры. Ключи `execute` и `<server>_*` относятся
-    // к V2 (Code Mode, MCP-инструменты как `<server>_<tool>`); в V1 они инертны, но и
-    // не мешают — там MCP-тулы и так разрешены по умолчанию.
     "question": "allow",
     "skill": "allow",
     "task": "allow",
@@ -31,20 +9,13 @@
     "chrome_devtools_*": "allow",
     "playwright_*": "allow",
 
-    // Правки файлов проекта — без запроса, выход за пределы проекта — запрет.
-    // Правило явное, потому что дефолты расходятся: в V1 external_directory спрашивает,
-    // в V2 — разрешает, и без правила правки вне репозитория проходили бы молча. Здесь
-    // именно deny, а не ask: в headless-прогоне вопрос подтвердить некому (см. выше).
     "edit": "allow",
     "external_directory": "deny",
 
-    // Любая shell-команда вне списка ниже — разрешена (allow), опасное запрещено в конце
-    // списка (deny). Внутри одного инструмента действует «последнее совпадение побеждает»:
-    // catch-all первым, deny — последними.
     "bash": {
       "*": "allow",
 
-      // Безопасная инспекция git — без запроса.
+      // Git чтение
       "git status *": "allow",
       "git diff *": "allow",
       "git log *": "allow",
@@ -52,11 +23,11 @@
       "git remote *": "allow",
       "git show *": "allow",
 
-      // Фиксация изменений (локально; удалённый репозиторий остаётся под deny).
+      // Git коммиты
       "git add *": "allow",
       "git commit *": "allow",
 
-      // Скрипты проекта из AGENTS.md — без запроса.
+      // npm скрипты проекта
       "npm run dev *": "allow",
       "npm test *": "allow",
       "npm run test *": "allow",
@@ -73,94 +44,62 @@
       "npm run build *": "allow",
       "npm run start *": "allow",
 
-      // Установка зависимостей (из корня или -w в workspace).
+      // Установка зависимостей
       "npm install *": "allow",
       "npm i *": "allow",
 
-      // npx: форматирование, тесты, shadcn-компоненты.
+      // Утилиты
       "npx prettier *": "allow",
       "npx vitest *": "allow",
       "npx shadcn *": "allow",
 
-      // GitHub CLI — issue tracker из AGENTS.md / docs/agents/issue-tracker.md.
+      // GitHub CLI
       "gh issue *": "allow",
       "gh pr *": "allow",
       "gh api *": "allow",
 
-      // Опасные команды — жёсткий запрет (deny нельзя обойти «Allow always»).
-      // Голый `git push` тоже запрещён отдельным шаблоном: его вызывает сам GitHub-экшен
-      // в `pushToLocalBranch`, и `"git push *"` его не покрывает. Отсюда следствие:
-      // сценарий «внеси правки» в CI доехал бы до push и упал на запрете — это ожидаемо,
-      // удалённый репозиторий из-под бота не пишется; «объясни / отревьюй» работает.
+      // Опасные команды
       "git push": "deny",
       "git push *": "deny",
-
-      // Перезапись уже опубликованной истории. Экшен завершает работу `git push`
-      // (без --force), поэтому переписанный tip не запушится: push получит
-      // non-fast-forward, job упадёт, а правки агента потеряются — раннер эфемерный
-      // (прогон 39067299559). Правила идут после `"git commit *": "allow"`: внутри
-      // инструмента побеждает последнее совпадение. Переписывать и не нужно: в CI
-      // коммит делает сам агент, до push'а экшена — см. AGENTS.md, «Владение
-      // git-историей».
-      // `--fixup`/`--squash` запрещены тем же списком: сами по себе они безопасны, но
-      // существуют только ради последующего `rebase --autosquash`.
       "git commit --amend": "deny",
       "git commit --amend *": "deny",
       "git commit --fixup *": "deny",
       "git commit --squash *": "deny",
       "git rebase": "deny",
       "git rebase *": "deny",
-      // Перекрывает прежний `git reset --hard *`: запрещено любое перемещение указателя
-      // ветки, включая `git reset <путь>` для расстегирования — стейжит сам экшен.
       "git reset": "deny",
       "git reset *": "deny",
       "git branch -f *": "deny",
       "git update-ref *": "deny",
       "git filter-branch *": "deny",
       "git filter-repo *": "deny",
-
       "git clean *": "deny",
       "git branch -D *": "deny",
       "rm -rf *": "deny",
-
-      // Merge и close по PR — необратимые действия, остаются за человеком: без точечных
-      // deny широкие `gh pr *` выше покрыли бы и их. Закрытие тикета агенту наоборот
-      // нужно: коммит со строкой `Closes #N` закрывает свой тикет, а старые тикеты без
-      // такой строки висели бы открытыми навсегда — их закрывает широкий `gh issue *`.
       "gh pr merge *": "deny",
-      "gh pr close *": "deny",
-    },
+      "gh pr close *": "deny"
+    }
   },
 
-  // MCP-серверы проекта. Конфиг в репозитории, чтобы агентная настройка была
-  // воспроизводима: клон + установка Node.js — и инструменты доступны.
-  // Секретов здесь нет: токен Render приходит из переменной окружения.
   "mcp": {
-    // Браузер для скилла .opencode/skills/ui-testing (сценарии гостевого потока).
     "playwright": {
       "type": "local",
       "command": ["npx", "-y", "@playwright/mcp@latest"],
-      "enabled": true,
+      "enabled": true
     },
-
-    // Второй браузерный доступ — для отладки вёрстки и сетевых запросов.
     "chrome-devtools": {
       "type": "local",
       "command": ["npx", "-y", "chrome-devtools-mcp@latest"],
-      "enabled": true,
+      "enabled": true
     },
-
-    // Управление опубликованным сервисом (Render) — деплой, логи, редеплой.
-    // Токен НЕ хранится в репозитории: положите его в переменную окружения
-    // RENDER_API_TOKEN (PowerShell: $env:RENDER_API_TOKEN = "rnd_...").
     "render": {
       "type": "remote",
       "url": "https://mcp.render.com/mcp",
       "oauth": false,
       "enabled": true,
       "headers": {
-        "Authorization": "Bearer {env:RENDER_API_TOKEN}",
-      },
-    },
-  },
+        "Authorization": "Bearer {env:RENDER_API_TOKEN}"
+      }
+    }
+  }
 }
