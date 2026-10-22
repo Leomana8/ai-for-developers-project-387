@@ -78,7 +78,7 @@ export function SlotPickerPage() {
         <Badge variant="secondary" className="w-fit">
           Шаг 1 из 2
         </Badge>
-        <h1 className="font-heading text-3xl font-semibold">Выберите Слот</h1>
+        <h1 className="font-heading text-3xl font-semibold">Выберите слот</h1>
         {eventType !== null && (
           <>
             <p className="text-muted-foreground">

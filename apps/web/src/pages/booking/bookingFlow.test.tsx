@@ -91,7 +91,7 @@ describe('гостевой поток записи', () => {
 
     // Шаг 1: Тип события → календарь и Слоты.
     fireEvent.click(await screen.findByRole('link', { name: /Консультация/ }))
-    expect(await screen.findByRole('heading', { name: 'Выберите Слот' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Выберите слот' })).toBeInTheDocument()
     expect(await screen.findByText('Разбор вопроса')).toBeInTheDocument()
 
     // Шаг 2: занятый Слот отключен, свободный выбирается, «Продолжить» — на подтверждение.
@@ -148,7 +148,7 @@ describe('гостевой поток записи', () => {
 
     expect(await screen.findByText('Слот больше недоступен')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Выбрать другой слот' }))
-    expect(await screen.findByRole('heading', { name: 'Выберите Слот' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Выберите слот' })).toBeInTheDocument()
     // День выбранного Слота сохраняется (story 22 — возврат без потери контекста).
     expect(screen.getByTestId('location').textContent).toBe(`/book/e1?date=${today}`)
   })
@@ -190,7 +190,7 @@ describe('гостевой поток записи', () => {
 
     expect(await screen.findByText('Слот больше недоступен')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Выбрать другой слот' }))
-    expect(await screen.findByRole('heading', { name: 'Выберите Слот' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Выберите слот' })).toBeInTheDocument()
     expect(screen.getByTestId('location').textContent).toBe(`/book/e1?date=${today}`)
   })
 
