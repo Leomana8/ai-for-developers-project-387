@@ -33,9 +33,13 @@ jobs:
     timeout-minutes: 15
     permissions:
       id-token: write
-      # Экшен комментирует через токен приложения OpenCode, полученный OIDC-обменом.
-      # GITHUB_TOKEN в него не передаётся, поэтому write-права воркфлоу не нужны.
+      # Экшен комментирует ответ в тред PR. В отличие от review, GITHUB_TOKEN
+      # в экшен может не передаваться, но сам action постит комментарий/реакцию
+      # через issues API — нужны write-права. На практике без issues: write
+      # прогон валится с 403 (как и в opencode-review).
       contents: read
+      pull-requests: write
+      issues: write
     steps:
       # Репо нужно агенту для чтения: ответ должен опираться на файлы, а не на память.
       # `persist-credentials: false` — как в `opencode.yml`, лишний токен в git не нужен.
