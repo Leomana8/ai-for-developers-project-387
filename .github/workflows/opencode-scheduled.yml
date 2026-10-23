@@ -7,7 +7,7 @@ on:
   schedule:
     # GitHub Actions всегда трактует cron как UTC. 11:00 UTC = 14:00 МСК.
     # Ровно один запуск в сутки.
-    - cron: '0 11 * * *'
+    - cron: '41 11 * * *'
   workflow_dispatch:
 
 concurrency:
