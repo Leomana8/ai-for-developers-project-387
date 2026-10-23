@@ -89,8 +89,9 @@ npm run build && npm run start
 - Потребовали итераций: `workflow_dispatch` стал доступен только после мержа в
   `main` ([PR #29](https://github.com/Leomana8/ai-for-developers-project-387/pull/29));
   доставка шла через PR, потому что прямой `git push` запрещён политикой.
-  Повторная проверка прав показала лишние write-права в `opencode-scheduled`,
-  `opencode-interactive` и `opencode-review` — их сократили.
+  Повторная проверка прав показала лишние write-права в `opencode-scheduled` и
+  `opencode-interactive` — их сократили. В `opencode-review` `pull-requests: write`
+  пришлось вернуть: без него реакции и комментарии к PR падают с 403.
 
 ## API-контракт
 

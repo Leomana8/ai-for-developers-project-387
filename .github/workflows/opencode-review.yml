@@ -34,11 +34,12 @@ jobs:
       # GITHUB_TOKEN раннера нужен экшену для записи в тред PR: `use_github_token: true`
       # ниже передаёт агенту именно его, OIDC-обмен токеном приложения не нужен —
       # поэтому `id-token: write` здесь не выдаём.
-      # Реакция и комментарий идут через issues API, для них нужен `issues: write`.
-      # Сам PR агент только читает: `pull-requests: read` хватает на GraphQL-запрос,
-      # а `contents: read` не даёт вносить правки. Мержит и одобряет человек.
+      # Реакция и комментарий к PR требуют и `issues: write`, и `pull-requests: write`:
+      # живой прогон PR #35 с одним `issues: write` получил 403 на reactions/comments.
+      # Сам PR агент только читает, `contents: read` не даёт вносить правки.
+      # Мержит и одобряет человек.
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: write
     steps:
       # Репо нужен агенту только для чтения кода. `persist-credentials: false` убирает
