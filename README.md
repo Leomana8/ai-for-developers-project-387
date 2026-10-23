@@ -45,6 +45,46 @@ npm run build && npm run start
 Откройте http://localhost:5173 и нажмите «Проверить /api/health» — фронтенд
 сходит на бэкенд через прокси Vite.
 
+## AI-воркфлоу
+
+### Воркфлоу проекта
+
+| Воркфлоу                   | Событие                                                                    | Модель                          | Назначение                                      | Прогоны                                                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`                   | push, PR в `main`, `workflow_dispatch`                                     | —                               | lint, тесты, сборка, проверка OpenAPI-спеки     | [CI](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/ci.yml)                                     |
+| `release-please.yml`       | push в `main`                                                              | —                               | релизы и release-PR по Conventional Commits     | [Release Please](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/release-please.yml)             |
+| `hexlet-check.yml`         | push, PR                                                                   | —                               | автоматические тесты Хекслета                   | [hexlet-check](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/hexlet-check.yml)                 |
+| `opencode.yml`             | `issue_comment`, `pull_request_review_comment`; команды `/oc`, `/opencode` | `opencode/mimo-v2.6-flash-free` | правит код, коммитит и открывает PR             | [opencode](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/opencode.yml)                         |
+| `opencode-interactive.yml` | те же события; команды `/ask`, `/interactive`                              | `opencode/mimo-v2.6-flash-free` | отвечает в PR, код не меняет                    | [opencode-interactive](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/opencode-interactive.yml) |
+| `opencode-review.yml`      | `pull_request` (opened, reopened, ready_for_review)                        | `opencode/mimo-v2.6-flash-free` | авторевью PR без правок кода                    | [opencode-review](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/opencode-review.yml)           |
+| `opencode-triage.yml`      | `issues` (opened)                                                          | `opencode/mimo-v2.6-flash-free` | триаж issue, лейблы и поиск дубликатов          | [opencode-triage](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/opencode-triage.yml)           |
+| `opencode-scheduled.yml`   | `schedule` в 11:00 UTC + `workflow_dispatch`                               | `opencode/mimo-v2.6-flash-free` | ежедневный Lighthouse-аудит и issue по находкам | [opencode-scheduled](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/opencode-scheduled.yml)     |
+
+У CI, release-please и hexlet-check модели нет — это обычные проверки.
+
+### Кто может запускать агента
+
+- `/oc`, `/opencode`, `/ask`, `/interactive` — только авторы комментариев с
+  `author_association` `OWNER`, `MEMBER` или `COLLABORATOR`. Комментарии ботов и
+  `opencode-agent[bot]` игнорируются.
+- `opencode-review` — только PR из этого же репозитория, не draft, не от бота и
+  от доверенного автора; PR из форков пропускаются.
+- `opencode-triage` — только issue от доверенных авторов; боты игнорируются.
+- `opencode-scheduled` — cron или ручной запуск из Actions (нужен write-доступ).
+
+### Share
+
+Репозиторий публичный. Во всех запусках `anomalyco/opencode/github` явно указан
+`share: false`: сессии OpenCode не публикуются по ссылке.
+
+### Самооценка работы с агентом
+
+- С первого прохода получился рабочий `opencode-scheduled`: ручной прогон
+  [#39918404914](https://github.com/Leomana8/ai-for-developers-project-387/actions/runs/39918404914)
+  успешно завёл issues #30–#32.
+- При доводке выяснилось, что часть прав была избыточной — их сократили до least
+  privilege.
+
 ## API-контракт
 
 Контракт публичного API описан на [TypeSpec](https://typespec.io) в `spec/*.tsp`.

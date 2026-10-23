@@ -21,23 +21,24 @@ jobs:
     if: >-
       github.event.pull_request.draft == false &&
       github.event.pull_request.user.type != 'Bot' &&
+      github.event.sender.type != 'Bot' &&
+      github.actor != 'opencode-agent[bot]' &&
+      github.actor != 'github-actions[bot]' &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association) &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     # Страховка от зависания — как в `opencode.yml`: экшен поднимает `opencode serve`
     # без клиента, который снял бы запрос на подтверждение (ask).
     timeout-minutes: 15
     permissions:
-      id-token: write
       # GITHUB_TOKEN раннера нужен экшену для записи в тред PR: `use_github_token: true`
-      # ниже передаёт агенту именно его, OIDC-обмен токеном приложения не нужен.
-      # read-прав из задачи не хватило: экшен ставит реакцию-индикатор на PR перед
-      # ревью и публикует сводный комментарий после — это запись через issues API
-      # (run 39254765935 упал с 403 «Resource not accessible by integration»).
-      # Сам репозиторий агент только читает — на правку кода прав не выдаём:
-      # мержит и одобряет человек.
+      # ниже передаёт агенту именно его, OIDC-обмен токеном приложения не нужен —
+      # поэтому `id-token: write` здесь не выдаём.
+      # Реакция и комментарий к PR требуют и `issues: write`, и `pull-requests: write`:
+      # живой прогон PR #35 с одним `issues: write` получил 403 на reactions/comments.
+      # Сам PR агент только читает, `contents: read` не даёт вносить правки.
+      # Мержит и одобряет человек.
       contents: read
-      # write, а не read: реакция на PR и комментарий в него по REST-эндпоинтам
-      # issues требуют и `issues: write`, и `pull-requests: write`.
       pull-requests: write
       issues: write
     steps:
@@ -57,8 +58,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/mimo-v2.6-flash-free
+          # Репозиторий публичный: не публикуем сессию OpenCode по ссылке.
+          share: false
           # true — замечания оставляет GITHUB_TOKEN раннера, а не токен приложения
-          # OpenCode из OIDC-обмена: этот воркфлоу права на запись не получает.
+          # OpenCode из OIDC-обмена: этот воркфлоу получает только нужные write-права.
           use_github_token: true
           # Свой промпт вместо встроенного дефолта: дефолт смотрит на код вообще, а
           # правила проекта живут в AGENTS.md и в договорах OpenAPI — их надо назвать.

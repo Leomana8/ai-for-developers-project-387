@@ -20,6 +20,10 @@ jobs:
     # заведении бага (`ready-for-agent`, а спорные вопросы — `needs-triage`).
     if: >-
       github.event.issue.user.type != 'Bot' &&
+      github.event.sender.type != 'Bot' &&
+      github.actor != 'opencode-agent[bot]' &&
+      github.actor != 'github-actions[bot]' &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.issue.author_association) &&
       !contains(github.event.issue.labels.*.name, 'needs-triage') &&
       !contains(github.event.issue.labels.*.name, 'needs-info') &&
       !contains(github.event.issue.labels.*.name, 'ready-for-agent') &&
@@ -52,6 +56,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/mimo-v2.6-flash-free
+          # Репозиторий публичный: не публикуем сессию OpenCode по ссылке.
+          share: false
           prompt: |
             Новый issue #${{ github.event.issue.number }} — проведи триаж.
 
