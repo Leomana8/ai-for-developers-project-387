@@ -16,6 +16,11 @@ jobs:
     # Проверка дублирует `mentions` у экшена намеренно: `if` отсекает лишние комментарии
     # ещё до подъёма раннера, а `mentions` вырезает команду из текста запроса.
     if: |
+      github.event.comment.user.type != 'Bot' &&
+      github.event.sender.type != 'Bot' &&
+      github.actor != 'opencode-agent[bot]' &&
+      github.actor != 'github-actions[bot]' &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
       ((github.event_name == 'issue_comment' && github.event.issue.pull_request) ||
         github.event_name == 'pull_request_review_comment') &&
       (contains(github.event.comment.body, ' /ask') ||
@@ -28,13 +33,9 @@ jobs:
     timeout-minutes: 15
     permissions:
       id-token: write
-      # Права ниже — для GITHUB_TOKEN. Сам агент работает с токеном приложения OpenCode,
-      # полученным через OIDC-обмен, и его права задаются настройкой приложения.
+      # Экшен комментирует через токен приложения OpenCode, полученный OIDC-обменом.
+      # GITHUB_TOKEN в него не передаётся, поэтому write-права воркфлоу не нужны.
       contents: read
-      # Ответ в треде PR — запись.
-      pull-requests: write
-      # Комментарий в PR для GitHub — это комментарий в issue, ответ на него тоже запись.
-      issues: write
     steps:
       # Репо нужно агенту для чтения: ответ должен опираться на файлы, а не на память.
       # `persist-credentials: false` — как в `opencode.yml`, лишний токен в git не нужен.
@@ -50,6 +51,8 @@ jobs:
         with:
           model: opencode/mimo-v2.6-flash-free
           mentions: /ask,/interactive
+          # Репозиторий публичный: не публикуем сессию OpenCode по ссылке.
+          share: false
           prompt: |
             Ответь на вопрос из комментария в PR.
 

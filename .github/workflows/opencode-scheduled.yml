@@ -16,17 +16,21 @@ concurrency:
 
 jobs:
   audit:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.sender.type != 'Bot' &&
+       github.actor != 'opencode-agent[bot]' &&
+       github.actor != 'github-actions[bot]')
     runs-on: ubuntu-latest
     # Страховка от зависания: прогрев Render + Lighthouse + агент.
     timeout-minutes: 30
-    # Права выданы по требованию задания. В этом воркфлоу агент работает
-    # в режиме аудита: фактически используются id-token (OIDC-обмен токена)
-    # и issues (gh issue create). contents/pull-requests оставлены как верхняя
-    # граница прав на случай, если prompt позже расширят до автофикса с PR.
+    # Least privilege: агент в режиме аудита только читает репозиторий и заводит
+    # issue через gh. id-token нужен для OIDC-обмена, issues — для gh issue create.
+    # Права на коммиты и PR не выдаём: prompt их прямо запрещает.
     permissions:
       id-token: write
-      contents: write
-      pull-requests: write
+      contents: read
       issues: write
     env:
       # Адрес приложения живёт в переменной репозитория, а не в воркфлоу:
@@ -136,6 +140,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           model: opencode/mimo-v2.6-flash-free
+          # Репозиторий публичный: не публикуем сессию OpenCode по ссылке.
+          share: false
           prompt: |
             Ты — агент ежедневного аудита опубликованного приложения «Календарь звонков».
 
