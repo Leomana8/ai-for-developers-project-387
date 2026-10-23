@@ -1,0 +1,192 @@
+name: opencode-scheduled
+
+# Ежедневный аудит опубликованного приложения: Lighthouse собирает отчёт,
+# отчёт сохраняется артефактом и в Job Summary, а OpenCode разбирает находки
+# и заводит issue. Код агент не меняет — это аудит, а не автофикс.
+on:
+  schedule:
+    # GitHub Actions всегда трактует cron как UTC. 11:00 UTC = 14:00 МСК.
+    # Ровно один запуск в сутки.
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: opencode-scheduled
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    # Страховка от зависания: прогрев Render + Lighthouse + агент.
+    timeout-minutes: 30
+    # Права выданы по требованию задания. В этом воркфлоу агент работает
+    # в режиме аудита: фактически используются id-token (OIDC-обмен токена)
+    # и issues (gh issue create). contents/pull-requests оставлены как верхняя
+    # граница прав на случай, если prompt позже расширят до автофикса с PR.
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+    env:
+      # Адрес приложения живёт в переменной репозитория, а не в воркфлоу:
+      # Settings → Secrets and variables → Actions → Variables → APP_URL.
+      APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Check APP_URL variable
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_URL:-}" ]; then
+            echo "::error::Переменная репозитория APP_URL не задана. Добавьте её в Settings → Secrets and variables → Actions → Variables."
+            exit 1
+          fi
+          # Убираем возможный хвостовой слэш, чтобы не получить `//api/health`.
+          echo "APP_URL=${APP_URL%/}" >> "$GITHUB_ENV"
+          echo "Проверяем: ${APP_URL%/}"
+
+      - name: Warm up the deployed app
+        run: |
+          set -euo pipefail
+          # Бесплатный Render засыпает без трафика, поэтому сначала будим
+          # приложение health-запросом (до ~4 минут), иначе Lighthouse
+          # измерит холодный старт вместо обычной страницы.
+          for attempt in $(seq 1 24); do
+            if curl -fsS --max-time 15 "${APP_URL}/api/health" > /dev/null; then
+              echo "Приложение отвечает (попытка ${attempt})."
+              exit 0
+            fi
+            echo "Ждём приложение... попытка ${attempt}/24"
+            sleep 10
+          done
+          echo "::error::Приложение не ответило на ${APP_URL}/api/health за 4 минуты."
+          exit 1
+
+      - name: Run Lighthouse
+        run: |
+          set -euo pipefail
+          mkdir -p reports/lighthouse
+          npx --yes lighthouse@13.5.0 "${APP_URL}" \
+            --output=json \
+            --output-path=reports/lighthouse/report.json \
+            --only-categories=performance,accessibility,best-practices,seo \
+            --chrome-flags="--headless=new --no-sandbox --disable-dev-shm-usage" \
+            --max-wait-for-load=90000 \
+            --quiet
+          ls -la reports/lighthouse
+
+      - name: Build report summary
+        run: |
+          set -euo pipefail
+          report="reports/lighthouse/report.json"
+          if [ ! -f "$report" ]; then
+            echo "::error::Lighthouse не создал $report."
+            exit 1
+          fi
+          {
+            echo "## Lighthouse: ${APP_URL}"
+            echo
+            echo "Дата (UTC): $(date -u '+%Y-%m-%d %H:%M:%S')"
+            echo
+            echo "| Категория | Оценка |"
+            echo "| --- | --- |"
+            jq -r '.categories | to_entries[] | "| \(.value.title) | \((.value.score * 100) | round) |"' "$report"
+            echo
+            echo "### Проваленные аудиты (топ-20)"
+            echo
+            echo "| Audit | Название | Оценка |"
+            echo "| --- | --- | --- |"
+            jq -r '
+              [.audits
+                | to_entries[]
+                | select(.value.score != null and .value.score < 1)
+                | select(.value.scoreDisplayMode == "binary" or .value.scoreDisplayMode == "numeric")]
+              | sort_by(.value.score)
+              | .[:20][]
+              | "| \(.key) | \(.value.title | gsub("\\|"; "/")) | \((.value.score * 100) | round) |"
+            ' "$report"
+          } > reports/lighthouse/summary.md
+          cat reports/lighthouse/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: reports/lighthouse
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Audit report with OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
+          # `gh` в bash-инструментах агента берёт токен отсюда: экшен отдаёт
+          # агенту app-токен только для git и собственных комментариев, в env
+          # его не экспортирует (проверено по github.handler.ts, v1.19.3).
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          model: opencode/mimo-v2.6-flash-free
+          prompt: |
+            Ты — агент ежедневного аудита опубликованного приложения «Календарь звонков».
+
+            Контекст прогона:
+            - URL приложения: ${{ vars.APP_URL }}
+            - Страница прогона: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            - Артефакт: `lighthouse-report` (внутри `report.json` и `summary.md`)
+            - Отчёт в checkout: `reports/lighthouse/summary.md` и `reports/lighthouse/report.json`
+
+            Что проверить:
+            - Прочитай `reports/lighthouse/summary.md` и при необходимости `report.json`.
+              Смотри оценки категорий и аудиты со score < 1.
+            - Сверь находки с кодом в `apps/web` (`index.html`, `src/index.css`,
+              компоненты) и `apps/server`, чтобы советы были конкретными, а не общими.
+            - Проверь, нет ли уже открытого issue с такой же находкой:
+              `gh issue list --state open --search "<audit id или формулировка>" --json number,title,url`.
+              Сравнивай суть находки, а не только совпадение заголовка.
+
+            Что сделать с результатом:
+            - Если точного дубликата нет, создай issue:
+              `gh issue create --title "perf(web): <краткая суть>" --body "<тело>" --label lighthouse-audit`.
+              В теле обязательно укажи:
+              - URL приложения, дату (UTC) и ссылку на страницу прогона;
+              - имя артефакта `lighthouse-report`;
+              - таблицу оценок Lighthouse по категориям;
+              - audit id и score главной находки;
+              - 3–5 конкретных шагов исправления с файлами и местами в коде;
+              - как проверить результат (повторный Lighthouse или тест).
+            - Если точный дубликат уже открыт, не создавай второй issue: добавь
+              комментарий с новыми цифрами и ссылкой на прогон
+              (`gh issue comment <номер> --body "..."`).
+            - Если независимых критичных находок несколько, заведи не больше трёх
+              issue, остальные перечисли в теле главного.
+
+            Чего нельзя:
+            - Менять файлы, коммитить, создавать ветки и PR. Это аудит, а не автофикс.
+            - Закрывать issue и снимать чужие лейблы.
+
+            Финальный ответ (он попадёт в лог прогона):
+            - номер и ссылка на созданный или обновлённый issue;
+            - оценки Lighthouse по категориям;
+            - одна строка о главной находке.
+
+      - name: Verify audit issue exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          count="$(gh issue list --state all --label lighthouse-audit --limit 100 --json number --jq 'length')"
+          if [ "$count" -eq 0 ]; then
+            echo "::error::Агент не завёл issue с лейблом lighthouse-audit — отчёт не опубликован в задаче."
+            exit 1
+          fi
+          echo "Issue с лейблом lighthouse-audit: $count. Отчёт опубликован."
