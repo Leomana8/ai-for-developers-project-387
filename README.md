@@ -60,8 +60,7 @@ npm run build && npm run start
 | `opencode-triage.yml`      | `issues` (opened)                                                          | `opencode/mimo-v2.6-flash-free` | триаж issue, лейблы и поиск дубликатов          | [opencode-triage](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/opencode-triage.yml)           |
 | `opencode-scheduled.yml`   | `schedule` в 11:00 UTC + `workflow_dispatch`                               | `opencode/mimo-v2.6-flash-free` | ежедневный Lighthouse-аудит и issue по находкам | [opencode-scheduled](https://github.com/Leomana8/ai-for-developers-project-387/actions/workflows/opencode-scheduled.yml)     |
 
-У CI, release-please и hexlet-check модели нет — это обычные проверки. Все
-агентские воркфлоу используют одну модель, чтобы поведение было предсказуемым.
+У CI, release-please и hexlet-check модели нет — это обычные проверки.
 
 ### Кто может запускать агента
 
@@ -76,22 +75,15 @@ npm run build && npm run start
 ### Share
 
 Репозиторий публичный. Во всех запусках `anomalyco/opencode/github` явно указан
-`share: false`: сессии OpenCode не публикуются по ссылке. Решение принято, чтобы
-не выносить в публичный доступ контекст, промпты и фрагменты кода. Если нужно
-поделиться сессией, это делается точечно и отдельным решением.
+`share: false`: сессии OpenCode не публикуются по ссылке.
 
 ### Самооценка работы с агентом
 
-- С первого прохода: воркфлоу `opencode-scheduled` с ежедневным cron и ручным
-  запуском, отчёт Lighthouse, артефакт и промпт для заведения issue. Первый ручной
-  прогон [#39918404914](https://github.com/Leomana8/ai-for-developers-project-387/actions/runs/39918404914)
-  прошёл без переделок; агент завёл три issue: #30, #31, #32.
-- Потребовали итераций: `workflow_dispatch` стал доступен только после мержа в
-  `main` ([PR #29](https://github.com/Leomana8/ai-for-developers-project-387/pull/29));
-  доставка шла через PR, потому что прямой `git push` запрещён политикой.
-  Повторная проверка прав показала лишние write-права в `opencode-scheduled` и
-  `opencode-interactive` — их сократили. В `opencode-review` `pull-requests: write`
-  пришлось вернуть: без него реакции и комментарии к PR падают с 403.
+- С первого прохода получился рабочий `opencode-scheduled`: ручной прогон
+  [#39918404914](https://github.com/Leomana8/ai-for-developers-project-387/actions/runs/39918404914)
+  успешно завёл issues #30–#32.
+- При доводке выяснилось, что часть прав была избыточной — их сократили до least
+  privilege.
 
 ## API-контракт
 
