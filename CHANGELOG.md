@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1](https://github.com/Leomana8/ai-for-developers-project-387/compare/v1.0.0...v1.0.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **ci:** добавить write-права для opencode-interactive ([6bbe2d1](https://github.com/Leomana8/ai-for-developers-project-387/commit/6bbe2d156586c0f37560e60ddfa6f0a331cb205e))
+* **ci:** ограничить запуск агента и сократить права ([0e04ba9](https://github.com/Leomana8/ai-for-developers-project-387/commit/0e04ba97f5dd2a15e80d2d314acc0094f1018621))
+
 ## 1.0.0 (2026-10-23)
 
 
