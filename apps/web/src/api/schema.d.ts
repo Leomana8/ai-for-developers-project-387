@@ -142,16 +142,16 @@ export interface components {
         };
         MeetingCreate: {
             eventTypeId: string;
-            /** @description Начало Слота, ISO 8601 без часового пояса */
+            /** @description Начало слота, ISO 8601 без часового пояса */
             start: string;
             guestName: string;
             /** Format: email */
             guestEmail: string;
         };
         Slot: {
-            /** @description Начало Слота, ISO 8601 без часового пояса, напр. 2026-10-10T09:00:00 */
+            /** @description Начало слота, ISO 8601 без часового пояса, напр. 2026-10-10T09:00:00 */
             start: string;
-            /** @description Конец Слота, ISO 8601 без часового пояса, напр. 2026-10-10T09:15:00 */
+            /** @description Конец слота, ISO 8601 без часового пояса, напр. 2026-10-10T09:15:00 */
             end: string;
             available: boolean;
         };

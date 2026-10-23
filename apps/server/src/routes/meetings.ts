@@ -62,7 +62,7 @@ export function meetingsRouter(store: Store): Router {
     if (start === null || !isGridMark(start)) {
       res.status(422).json(
         errorEnvelope('validation_error', 'Проверьте правильность заполнения полей', {
-          start: 'Выберите время из предложенных Слотов',
+          start: 'Выберите время из предложенных слотов',
         }),
       )
       return
