@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.2](https://github.com/Leomana8/ai-for-developers-project-387/compare/v1.0.1...v1.0.2) (2026-10-26)
+
+
+### Bug Fixes
+
+* **ci:** keep scheduled audit limited to issues ([1aacb41](https://github.com/Leomana8/ai-for-developers-project-387/commit/1aacb412a62568c9fae985492cd2779abe2257ac)), closes [#40](https://github.com/Leomana8/ai-for-developers-project-387/issues/40)
+* **ci:** preserve OpenCode action for scheduled audit ([e2ff7e2](https://github.com/Leomana8/ai-for-developers-project-387/commit/e2ff7e2ed138222f1165a48279919bf698e65d55)), closes [#40](https://github.com/Leomana8/ai-for-developers-project-387/issues/40)
+* **ci:** права регулярного аудита и исключение Lighthouse-отчётов ([e7a1947](https://github.com/Leomana8/ai-for-developers-project-387/commit/e7a19470aead81c51804428db0619da47081ac1b))
+
 ## [1.0.1](https://github.com/Leomana8/ai-for-developers-project-387/compare/v1.0.0...v1.0.1) (2026-10-23)
 
 
