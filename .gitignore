@@ -29,3 +29,6 @@ Thumbs.db
 .env.*.local
 
 .playwright-mcp/
+
+# Lighthouse: отчёты аудита публикуются артефактами GitHub Actions
+/reports/lighthouse/
