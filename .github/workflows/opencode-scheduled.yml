@@ -25,9 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     # Страховка от зависания: прогрев Render + Lighthouse + агент.
     timeout-minutes: 30
-    # Полный набор прав по требованиям курса. Поведение аудита ограничиваем
-    # отдельно: CLI не содержит автоматического коммита/push/PR GitHub Action,
-    # а разрешения агента допускают только чтение и публикацию в issues.
+    # Полный набор прав по требованиям курса. Аудит публикует результаты
+    # только в issues; менять файлы и создавать PR запрещено в prompt.
+    # Lighthouse-отчёты исключены из Git, чтобы не вызвать автокоммит экшена.
     permissions:
       id-token: write
       contents: write
@@ -131,33 +131,19 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Audit report with OpenCode CLI
-        # Не использовать opencode github run: его обвязка создаёт коммит и PR.
+      - name: Audit report with OpenCode
+        uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }} # имя секрета зависит от провайдера в model
+          # `gh` в bash-инструментах агента берёт токен отсюда: экшен отдаёт
+          # агенту app-токен только для git и собственных комментариев, в env
+          # его не экспортирует (проверено по github.handler.ts, v1.19.3).
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Общие настройки разрешают коммиты интерактивному агенту.
-          # Аудит использует изолированные настройки и prompt этого workflow.
-          OPENCODE_DISABLE_PROJECT_CONFIG: 'true'
-          OPENCODE_CONFIG_CONTENT: |
-            {
-              "share": "disabled",
-              "permission": {
-                "*": "deny",
-                "read": "allow",
-                "glob": "allow",
-                "grep": "allow",
-                "list": "allow",
-                "bash": {
-                  "*": "deny",
-                  "gh issue list *": "allow",
-                  "gh issue view *": "allow",
-                  "gh issue create *": "allow",
-                  "gh issue comment *": "allow"
-                }
-              }
-            }
-          AUDIT_PROMPT: |
+        with:
+          model: opencode/mimo-v2.6-flash-free
+          # Репозиторий публичный: не публикуем сессию OpenCode по ссылке.
+          share: false
+          prompt: |
             Ты — агент ежедневного аудита опубликованного приложения «Календарь звонков».
 
             Контекст прогона:
@@ -199,20 +185,6 @@ jobs:
             - номер и ссылка на созданный или обновлённый issue;
             - оценки Lighthouse по категориям;
             - одна строка о главной находке.
-        run: |
-          set -euo pipefail
-          npx --yes opencode-ai@1.19.4 run \
-            --model opencode/mimo-v2.6-flash-free "$AUDIT_PROMPT"
-
-      - name: Verify checkout unchanged
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$(git rev-parse '${{ github.sha }}')"
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::Аудит изменил checkout."
-            git status --short
-            exit 1
-          fi
 
       - name: Verify audit issue exists
         env:
