@@ -25,12 +25,13 @@ jobs:
     runs-on: ubuntu-latest
     # Страховка от зависания: прогрев Render + Lighthouse + агент.
     timeout-minutes: 30
-    # Least privilege: агент в режиме аудита только читает репозиторий и заводит
-    # issue через gh. id-token нужен для OIDC-обмена, issues — для gh issue create.
-    # Права на коммиты и PR не выдаём: prompt их прямо запрещает.
+    # Полный набор прав по требованиям курса. Аудит публикует результаты
+    # только в issues; менять файлы и создавать PR запрещено в prompt.
+    # Lighthouse-отчёты исключены из Git, чтобы не вызвать автокоммит экшена.
     permissions:
       id-token: write
-      contents: read
+      contents: write
+      pull-requests: write
       issues: write
     env:
       # Адрес приложения живёт в переменной репозитория, а не в воркфлоу:
